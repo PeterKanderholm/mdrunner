@@ -27,5 +27,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/PeterKanderholm/model-runner"
-"Bug Tracker" = "https://github.com/PeterKanderholm/model-runner/issues"
+"Homepage" = "https://github.com/PeterKanderholm/mdrunner"
+"Bug Tracker" = "https://github.com/PeterKanderholm/mdrunner/issues"
