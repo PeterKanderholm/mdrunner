@@ -1,0 +1,17 @@
+@startuml
+[*] -[dashed]-> In2 : add(p1=2, p2=3, p3=4)
+
+In2 --> A2 : get()
+In2 --> B2 : get()
+
+A2 --> B2 : get()
+A2 -[dashed]-> Out1 : push()
+
+B2 -[dashed]-> Out1 : push()
+
+In2 : p1, p2, p3
+A2 : x = In.p1 + In.p2
+B2 : x = A.x + In.p3
+Out1: x = sum(pushed_models.x)
+
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+
+[*] -[dashed]-> In3 : add(p1=2, p2=3, x=4)
+
+In3 --> A2 : get()
+In3 --> B3 : get()
+In3 --> C3 : get()
+In3 -[dashed]-> Out1 : push()
+
+A2 --> B3 : get()
+A2 --> C3 : get()
+A2 -[dashed]-> Out1 : push()
+
+B3 --> C3 : get()
+B3 -[dashed]-> Out1 : push()
+
+C3 -[dashed]-> Out1 : push()
+
+In3 : p1, p2, x
+A2 : x = In.p1 + In.p2
+B3 : x = In.x + A.x
+C3 : x = In.x + A.x + B.x
+Out1: x = sum(pushed.x)
+
+@enduml

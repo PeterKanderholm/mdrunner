@@ -1,0 +1,13 @@
+@startuml
+[*] -[dashed]-> In2 : add(p1=2, p2=3, p3=4)
+
+In2 --> A1: get()
+In2 --> B1: get()
+
+A1 --> B1: get()
+
+In2 : p1, p2, p3
+A1 : x = In.p1 + In.p2
+B1 : x = A.x + In.p3
+
+@enduml
