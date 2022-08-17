@@ -4,7 +4,7 @@ A framework for running user-defined calculations (here called models)
 
 ## 1. Installation
 ```
-pip install model-runner
+pip install mdrunner
 ```
 
 ## 2. Get started
