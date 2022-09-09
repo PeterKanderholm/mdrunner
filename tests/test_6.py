@@ -34,7 +34,7 @@ class Test_6:
         assert runner.In.x == 4.0
         self.check_model(
             model=runner.In,
-            expected_param_names=['In.p1', 'In.p2', 'In.x'],
+            expected_param_names=['p1', 'p2', 'x'],
             expected_pushed_model_types=[],
             expected_pushed_param_names=[])
 
@@ -42,7 +42,7 @@ class Test_6:
         assert runner.A.x == 6.0
         self.check_model(
             model=runner.A,
-            expected_param_names=['A.x'],
+            expected_param_names=['x'],
             expected_pushed_model_types=[],
             expected_pushed_param_names=[])
 
@@ -50,7 +50,7 @@ class Test_6:
         assert runner.B.x == 10.0
         self.check_model(
             model=runner.B,
-            expected_param_names=['B.x'],
+            expected_param_names=['x'],
             expected_pushed_model_types=[],
             expected_pushed_param_names=[])
 
@@ -58,7 +58,7 @@ class Test_6:
         assert runner.C.x == 20.0
         self.check_model(
             model=runner.C,
-            expected_param_names=['C.x'],
+            expected_param_names=['x'],
             expected_pushed_model_types=[],
             expected_pushed_param_names=[])
 
@@ -66,7 +66,7 @@ class Test_6:
         assert runner.Out.x == 40.0
         self.check_model(
             model=runner.Out,
-            expected_param_names=['Out.x'],
+            expected_param_names=['x'],
             expected_pushed_model_types=[ModelType.B, ModelType.C, ModelType.A, ModelType.In],
             expected_pushed_param_names=['B.x', 'C.x', 'A.x', 'In.p1', 'In.p2', 'In.x'])
 

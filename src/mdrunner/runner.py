@@ -35,14 +35,15 @@ class Runner(RunnerProtected):
 
     @property
     def params(self) -> Dict[str, any]:
-        """Returns a dict with all model parameters.
+        """Returns a dict with all model parameters as.
         { 'model_type.param_name' : value }  of type (str:any)"""
         params = {}
         for name, model in self._created_models.items():
-            params.update(model.params)
+            for param_name, param_val in model._params.items():
+                params[f"{model.type.name}.{param_name}"] = param_val
         return params
 
-    @property
+
     def models(self) -> Dict['ModelType', Model]:
         """Return a dict with the model type and instance
         { 'Mdel_typem_name' : value }  of type (str:any)"""

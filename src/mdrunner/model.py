@@ -96,11 +96,8 @@ class Model(ModelProtected):
     @property
     def params(self) -> Dict[str, any]:
         """Returns a dict with this model parameters.
-        { 'model_type.param_name' : value }  of type (str:any)"""
-        params = {}
-        for param_name, param_val in self._params.items():
-            params[f"{self.type.name}.{param_name}"] = param_val
-        return params
+        { 'param_name' : value }  of type (str:any)"""
+        return self._params
 
     @property
     def pushed_params(self) -> Dict[str, any]:
@@ -108,7 +105,9 @@ class Model(ModelProtected):
         { 'model_type.param_name' : value }  of type (str:any)"""
         pushed_params = {}
         for model in self.pushed_models:
-            pushed_params.update(model.params)
+            model_name = model.type.name
+            for param_name, param_val in model._params.items():
+                pushed_params[f"{model_name}.{param_name}"] = param_val
         return pushed_params
 
     def __repr__(self):
