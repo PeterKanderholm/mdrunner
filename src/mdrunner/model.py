@@ -66,8 +66,10 @@ class Model(ModelProtected):
         if name in dir(self):
             raise ValueError(f"parameter '{name}' already exist as model attribute in model '{self.name}'")
         else:
-            setattr(self, name, val)
-
+            try:
+                setattr(self, name, val)
+            except Exception as e:
+                raise ValueError(f"failed to add name({name}), val({val}) with error:\n{str(e)}")
     @property
     def type(self) -> 'ModelType':
         return self.model_type

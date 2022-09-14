@@ -1,4 +1,3 @@
-
 class ModelProtected:
     """Model base class, internal part
     The instantiation and execution of the models are governed by a Runner class.
@@ -41,7 +40,12 @@ class ModelProtected:
         # add to dict
         self._input_models[source_model_type] = source_model
         # add as class attribute for easy access
-        setattr(self, source_model_type.name, source_model)
+        try:
+            setattr(self, source_model_type.name, source_model)
+        except Exception as e:
+            raise ValueError(f"failed to register input from source_model_type({source_model_type}), "
+                             f"source_model({source_model}) with error:\n"
+                             f"{str(e)}")
 
     def _run(self):
         """This function is called prior to the run model to make sure

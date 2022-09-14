@@ -85,7 +85,14 @@ class RunnerProtected:
         else:
             self._created_models[model_type] = model_instance
             # add model to self for simplified access
-            setattr(self, model_type.name, model_instance)
+            try:
+                setattr(self, model_type.name, model_instance)
+            except Exception as e:
+                raise ValueError(
+                    f"failed to register model for model_type({model_type}), "
+                    f"model_instance({model_instance}) with error:\n"
+                    f"{str(e)}")
+        return
 
     def _init_models(self):
         """register the dependencies between all models

@@ -3,8 +3,15 @@ For details see the description in
 
 https://packaging.python.org/en/latest/tutorials/packaging-projects/
 
+
+## 1. Update the lib version
+update the pyproject.toml file
+```
+version = "x.y.z"
+```
+
 ## 1. Generate the lib
-as defined in pyproject.toml
+based on the lib configuration in pyproject.toml
 ```
 python -m build
 ```
