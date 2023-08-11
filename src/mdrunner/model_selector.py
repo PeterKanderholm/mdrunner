@@ -37,10 +37,8 @@ class ModelSelector:
         >>> selection
         ['A2', 'B1']
         >>> selection = ModelSelector.select(rules, globals(), locals(), True)
-        >>> selection['A']
-        'A2'
-        >>> selection['B']
-        'B1'
+        >>> selection
+        {'A': 'A2', 'B': 'B1'}
         """
         selected_models = {}
         for model_type, model_selection_rules in rules.items():

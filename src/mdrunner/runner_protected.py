@@ -61,16 +61,16 @@ class RunnerProtected:
             model_instance = class_definition(self)
         except Exception as e:
             raise KeyError(
-                f"Failed to instantiate model: {model_class_name}' not found in library {self._model_package}")
+                f"failed to instantiate model: {model_class_name}' not found in library {self._model_package}")
         return model_instance
 
-    def _get_model(self, model_type: 'ModelType') -> Model:
+    def _get_model_instance(self, model_type: 'ModelType') -> Model:
         """return the model instance associated with the user defined ModelType"""
         try:
             return self._created_models[model_type]
         except KeyError:
             raise KeyError(
-                f'model instance for "{model_type}" does not exist')
+                f'model instance for model type "{model_type}" does not exist')
 
     def _register_model(self, model_instance: Model):
         """register the instantiated model"""
@@ -89,9 +89,9 @@ class RunnerProtected:
                 setattr(self, model_type.name, model_instance)
             except Exception as e:
                 raise ValueError(
-                    f"failed to register model for model_type({model_type}), "
-                    f"model_instance({model_instance}) with error:\n"
-                    f"{str(e)}")
+                    f"failed to register model '{model_instance.name}'"
+                    f" of type '{model_type}'"
+                    f" with error: {str(e)}")
         return
 
     def _init_models(self):

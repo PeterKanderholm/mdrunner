@@ -1,3 +1,7 @@
+from typing import Dict
+from .model_interface import ModelInterface
+
+
 class ModelProtected:
     """Model base class, internal part
     The instantiation and execution of the models are governed by a Runner class.
@@ -9,25 +13,33 @@ class ModelProtected:
         '''The parent class that instantiated this model'''
         self._model_runner = model_runner
 
-        '''models being pushed to us from other models by a call to
-            <other_model>.push(<this_model>)
-        '''
-        self._models_pushed_to_us = {}
-
         '''All input models connected to this model
-        including our requested models and models pushed to us
+           including <this_model>.depend_on() and
+           <other_model>.notify() calls to <this_model>
         '''
         self._input_models = {}
 
-        '''Registered param
-        example: { 'name' : param(name='name'), ... }
+        '''Other models that <this_model> has notified by a call to to 
+            <this_model>.notify(<other_model>)
         '''
-        self._params = {}
+        self._notified_models = {}
+
+        '''models that has notified <this_model> by a call to to
+            <other_model>.notify(<this_model>)
+        '''
+        self._notifying_models = {}
+
+        '''Input interface parameters
+           external parameters added to this model from <runner>.add_input()'''
+        self._input = ModelInterface('input')
+
+        '''Output interface parameters'''
+        self._output = ModelInterface('output')
 
     def _init(self):
         ''' Register the dependencies between models '''
-        # Let the user model register the models they need params from
-        # and the models they want to push data to
+        # Let the user model register the models they <depend_on>
+        # and the models they want to <notify>
         self.init()
 
     def _register_input_from(self, source_model_type: 'ModelType'):
@@ -35,17 +47,17 @@ class ModelProtected:
            <source_model> --> <this_model>
         """
         # <source_model>
-        source_model = self._model_runner._get_model(source_model_type)
+        source_model = self._model_runner._get_model_instance(source_model_type)
 
         # add to dict
         self._input_models[source_model_type] = source_model
-        # add as class attribute for easy access
+        # add model as class attribute for easy access
         try:
             setattr(self, source_model_type.name, source_model)
         except Exception as e:
-            raise ValueError(f"failed to register input from source_model_type({source_model_type}), "
-                             f"source_model({source_model}) with error:\n"
-                             f"{str(e)}")
+            raise ValueError(f"failed to register input from model '{source_model.name}'"
+                             f" of type '{source_model_type}', "
+                             f" error: {str(e)}")
 
     def _run(self):
         """This function is called prior to the run model to make sure
@@ -55,14 +67,14 @@ class ModelProtected:
         # now we can call this models run method
         self.run()
 
-    def _register_model_pushed_to_us(self, model_type: 'ModelType', model_instance: 'Model'):
+    def _register_notifying_model(self, model_type: 'ModelType', model_instance: 'Model'):
         '''
-        A model will be pushing param to us by a call to
-            <other_model>.push( <this_model> )
+        A model has notified <this_model> by a call to
+            <other_model>.notify( <this_model> )
 
         Register this request
         '''
-        self._models_pushed_to_us[model_type] = model_instance
+        self._notifying_models[model_type] = model_instance
         self._register_input_from(model_type)
 
     def _get_model_dependency_depth(self, loops: int = 0) -> int:
@@ -103,3 +115,41 @@ class ModelProtected:
             child_depth = model_instance._get_model_dependency_depth(loops) + 1
             depth.append(child_depth)
         return max(depth)
+
+    def _add_param(self, name: str, val: any, mif: 'ModelInterface'):
+        """Add an interface parameter to the model"""
+
+        if not isinstance(name, str):
+            raise ValueError(f"parameter '{self.name}' must be a str"
+                             f" when adding to '{self.name}.{mif.name}'")
+
+        if '.' in name:
+            raise ValueError(f"'.' character not allowed"
+                             f" for parameter '{name}'"
+                             f" when adding to '{self.name}.{mif.name}'")
+
+        """add name:val to dict"""
+        if name in mif.params:
+            raise ValueError(f"failed to add parameter '{self.name}.{mif.name}.{name} = {val}'"
+                             f" error: parameter already exist")
+        else:
+            mif.params[name] = val
+
+        """add object.name = val to a model interface"""
+        if name in dir(mif):
+            raise ValueError(f"failed to add attribute '{self.name}.{mif.name}.{name} = {val}'"
+                             f" error: attribute already exist")
+        else:
+            try:
+                setattr(mif, name, val)
+            except Exception as e:
+                raise ValueError(f"failed to add attribute '{self.name}.{mif.name}.{name} = {val}'"
+                                 f" error: {str(e)}")
+
+    def _get_mif_params_full_path(self, mif: 'ModelInterface') -> Dict[str, any]:
+        """Returns a dict with model interface parameters as.
+        { '<model_type>.<mif.name>.<param_name>' : <param.value> }  of type (str:any)"""
+        params = {}
+        for param_name, param_val in mif.params.items():
+            params[f"{self.type.name}.{mif.name}.{param_name}"] = param_val
+        return params

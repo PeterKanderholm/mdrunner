@@ -1,5 +1,5 @@
 from .model_protected import ModelProtected
-from typing import List, Dict
+from typing import List
 
 
 class Model(ModelProtected):
@@ -10,6 +10,9 @@ class Model(ModelProtected):
 
     # A user defined ModelType needs to be defined for each instantiated model
     model_type = None
+
+    def __init__(self, model_runner: 'Runner'):
+        super().__init__(model_runner)
 
     def init(self):
         """Override this function to register needed input models
@@ -25,51 +28,42 @@ class Model(ModelProtected):
         raise NotImplementedError(
             f"Please implemented method 'def run(self):' in '{self.name}'")
 
-    def __init__(self, model_runner: 'Runner'):
-        super().__init__(model_runner)
-
-    def get(self, source_model_type: 'ModelType'):
-        """Request input from a <source_model> that <this_model> needs data from
+    def depend_on(self, source_model_type: 'ModelType'):
+        """Request input from a <source_model> that <this_model> needs access to
            <source_model> --> <this_model>"""
         self._register_input_from(source_model_type)
 
-    def push(self, target_model_type: 'ModelType'):
-        """<this_model> wants to push itself to a <target_model>
+    def notify(self, target_model_type: 'ModelType'):
+        """<this_model> wants to notify a <target_model>
            <this_model> --> <target_model>
-        Tell the <target_model> our intentions"""
-        # <target model>
-        target_model = self._model_runner._get_model(target_model_type)
+        Tell the <target_model> that <this_model> has data that might be of interest"""
 
-        # <this model>
+        target_model_instance = self._model_runner._get_model_instance(target_model_type)
         this_model_type = self.model_type
         this_model_instance = self
 
-        # let the <target_model> know that we will push our model to them
-        target_model._register_model_pushed_to_us(this_model_type, this_model_instance)
+        # let the <target_model> know that <this_model> has data that might be of interest
+        target_model_instance._register_notifying_model(this_model_type, this_model_instance)
 
-    def add(self, name: str, val: any):
-        """add a (name, value) pair to this model"""
+        # store this notification
+        self._notified_models[target_model_type] = target_model_instance
 
-        if not isinstance(name, str):
-            raise ValueError(f"parameter name '{name}' must be a str in model '{self.__class__.__name__}'")
+    @property
+    def input(self) -> 'ModelInterface':
+        return self._input
 
-        if '.' in name:
-            raise ValueError(f"'.' character not allowed in parameter '{name}' in model '{self.__class__.__name__}'")
+    def add_input(self, name: str = None, val: any = None):
+        """Add an input parameter to the model        """
+        self._add_param(name, val, self.input)
 
-        # add in a dict
-        if name in self._params:
-            raise ValueError(f"parameter '{name}' already exist as param in model '{self.name}'")
-        else:
-            self._params[name] = val
+    @property
+    def output(self) -> 'ModelInterface':
+        return self._output
 
-        # add as class attribute for easy access
-        if name in dir(self):
-            raise ValueError(f"parameter '{name}' already exist as model attribute in model '{self.name}'")
-        else:
-            try:
-                setattr(self, name, val)
-            except Exception as e:
-                raise ValueError(f"failed to add name({name}), val({val}) with error:\n{str(e)}")
+    def add_output(self, name: str = None, val: any = None):
+        """Add an output parameter to the model        """
+        self._add_param(name, val, self.output)
+
     @property
     def type(self) -> 'ModelType':
         return self.model_type
@@ -80,37 +74,35 @@ class Model(ModelProtected):
         return type(self).__name__
 
     @property
-    def models(self) -> List['Model']:
-        """Return a list of models that is connected to this model"""
+    def input_models(self) -> List['Model']:
+        """Return a list of models that <this_model> is depending on
+           that <this_model> did with a call to <this_model>.depend_on() """
         models = []
         for model_name, model in self._input_models.items():
             models.append(model)
         return models
 
     @property
-    def pushed_models(self) -> List['Model']:
-        """Return a list of models that is pushed to this model"""
+    def notifying_models(self) -> List['Model']:
+        """Return a list of models that has notified <this_model>
+           with a call to <other_model>.notify( <this_model> )
+        """
         models = []
-        for model_name, model in self._models_pushed_to_us.items():
+        for model_name, model in self._notifying_models.items():
             models.append(model)
         return models
 
-    @property
-    def params(self) -> Dict[str, any]:
-        """Returns a dict with this model parameters.
-        { 'param_name' : value }  of type (str:any)"""
-        return self._params
-
-    @property
-    def pushed_params(self) -> Dict[str, any]:
-        """Returns a dict with the parameters that was pushed as input to this model.
-        { 'model_type.param_name' : value }  of type (str:any)"""
-        pushed_params = {}
-        for model in self.pushed_models:
-            model_name = model.type.name
-            for param_name, param_val in model._params.items():
-                pushed_params[f"{model_name}.{param_name}"] = param_val
-        return pushed_params
+    def notified_models(self) -> List['Model']:
+        """Return a list of other models that <this_model>
+           with a call to <this_model>.notify( <other_model> )
+        """
+        models = []
+        for model_name, model in self._notifying_models.items():
+            models.append(model)
+        return models
 
     def __repr__(self):
-        return f"Model(name='{self.name}', type='{self.type}', params={self._params})"
+        return f"Model(name='{self.name}'," \
+               f" type='{self.type}'," \
+               f" input='{self.input.params}'," \
+               f" output='{self.output.params}')"

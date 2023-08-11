@@ -18,15 +18,15 @@ class Runner(RunnerProtected):
             [ModelType, model_class_name]"""
         super().__init__(model_package, models_to_run)
 
-    def add(self, params: Dict[str, any], model_type: 'ModelType'):
-        """Register external Params to a model
+    def add_input_to_model(self, params: Dict[str, any], model_type: 'ModelType'):
+        """Import external Params to a model
         params :
             a dict with {name : value} pairs of type {str : any}
         model_type :
             the user defined ModelType of the receiving model"""
-        model_instance = self._get_model(model_type)
+        model_instance = self._get_model_instance(model_type)
         for name, val in params.items():
-            model_instance.add(name, val)
+            model_instance.add_input(name, val)
 
     def run_models(self):
         """Run all registered models in the correct execution order"""
@@ -34,15 +34,22 @@ class Runner(RunnerProtected):
             model._run()
 
     @property
-    def params(self) -> Dict[str, any]:
-        """Returns a dict with all model parameters as.
-        { 'model_type.param_name' : value }  of type (str:any)"""
+    def input(self) -> Dict[str, any]:
+        """Returns a dict with all model input parameters as.
+        { 'model_type.input.param_name' : value }  of type (str:any)"""
         params = {}
         for name, model in self._created_models.items():
-            for param_name, param_val in model._params.items():
-                params[f"{model.type.name}.{param_name}"] = param_val
+            params.update(model._get_mif_params_full_path(model.input))
         return params
 
+    @property
+    def output(self) -> Dict[str, any]:
+        """Returns a dict with all model output parameters as.
+        { 'model_type.output.param_name' : value }  of type (str:any)"""
+        params = {}
+        for name, model in self._created_models.items():
+            params.update(model._get_mif_params_full_path(model.output))
+        return params
 
     def models(self) -> Dict['ModelType', Model]:
         """Return a dict with the model type and instance

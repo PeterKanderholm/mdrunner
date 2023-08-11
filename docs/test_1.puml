@@ -1,7 +1,7 @@
 @startuml
-[*] -[dashed]-> In1 : add(p1=2, p2=3)
+[*] -[dashed]-> S1 : add(p1=2, p2=3)
 
-In1 : p1, p2
-In1 : x = In.p1 + In.p2
+S1 : p1, p2
+S1 : x = S.input.p1 + S.input.p2
 
 @enduml

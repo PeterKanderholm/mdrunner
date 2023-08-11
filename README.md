@@ -16,7 +16,7 @@ Each type of model shall be defined in ```ModelType```
 from enum import Enum, auto
 
 class ModelType(Enum):
-    In = auto()
+    S = auto()
     A = auto()
     B = auto()
 ```
@@ -32,11 +32,10 @@ For each model class declare
 ```Python
 from mdrunner import Model
 
-class In2(Model):
-    model_type = ModelType.In
+class S2(Model):
+    model_type = ModelType.S
     def init(self):
-        """expecting external input from runner.add({'str':any})
-           for example with {'p1': 2.0, 'p2': 3.0} will be available as In.p1 and In.p2 """
+        """Expecting external input data from runner.add_input()"""
         pass
     def run(self):
         pass
@@ -44,18 +43,17 @@ class In2(Model):
 class A1(Model):
     model_type = ModelType.A
     def init(self):
-        self.get(ModelType.In)
+        self.depend_on(ModelType.S)
     def run(self):
-        self.add(name='x', val=self.In.p1 * self.In.p2)
+        self.add_output(name='x', val=self.S.input.p1 * self.S.input.p2)
         
 class B1(Model):
     model_type = ModelType.B
     def init(self):
-        self.get(ModelType.In)
-        self.get(ModelType.A)
-        pass
+        self.depend_on(ModelType.S)
+        self.depend_on(ModelType.A)
     def run(self):
-        self.add(name='x', val=self.A.x * self.In.p3)
+        self.add_output(name='x', val=self.A.output.x * self.S.input.p3)
 ```
 
 ### 2.3 Model parameters
@@ -90,25 +88,33 @@ from models import ModelType
 
 # Register models
 all_models = importlib.import_module('models')
-selected_models = ['A1', 'In2', 'B1']
+selected_models = ['A1', 'S2', 'B1']
 runner = Runner(all_models, selected_models)
 
 # feed models with external inputs
 values = {'p1': 2.0, 'p2': 3.0, 'p3': 4.0}
-runner.add(values, ModelType.In)
+runner.add_output(values, ModelType.S)
 
 # run models
 runner.run_models()
 
 # check model results 
-assert runner.params == \
-    {'A.x': 6.0,
-     'B.x': 24.0,
-     'In.p1': 2.0,
-     'In.p2': 3.0,
-     'In.p3': 4.0}
+assert runner.input == {
+    'S.p1': 2.0,
+    'S.p2': 3.0,
+    'S.p3': 4.0
+}
 
-assert runner.B.x == 24.0
+assert runner.output == {
+    'A.output.x': 6.0,
+    'B.output.x': 24.0,
+}
+
+assert runner.A.output.x == 6.0
+assert runner.B.output.x == 24.0
+assert runner.S.input.p1 == 2.0
+assert runner.S.input.p2 == 3.0
+assert runner.S.input.p3 == 4.0
 ```
 
 ## 3. Further reading
