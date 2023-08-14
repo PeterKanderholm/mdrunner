@@ -1,5 +1,7 @@
 from typing import Dict
 from .model_interface import ModelInterface
+from .model_input import ModelInput
+from .model_output import ModelOutput
 
 
 class ModelProtected:
@@ -31,10 +33,10 @@ class ModelProtected:
 
         '''Input interface parameters
            external parameters added to this model from <runner>.add_input()'''
-        self._input = ModelInterface('input')
+        self._input = ModelInput()
 
         '''Output interface parameters'''
-        self._output = ModelInterface('output')
+        self._output = ModelOutput()
 
     def _init(self):
         ''' Register the dependencies between models '''
@@ -46,18 +48,15 @@ class ModelProtected:
         """Request input from a <source_model> that <this_model> needs data from
            <source_model> --> <this_model>
         """
-        # <source_model>
-        source_model = self._model_runner._get_model_instance(source_model_type)
-
-        # add to dict
-        self._input_models[source_model_type] = source_model
-        # add model as class attribute for easy access
         try:
+            # <source_model>
+            source_model = self._model_runner.get_model_instance(source_model_type)
+            # add model to dict
+            self._input_models[source_model_type] = source_model
+            # add model as class attribute for easy access
             setattr(self, source_model_type.name, source_model)
         except Exception as e:
-            raise ValueError(f"failed to register input from model '{source_model.name}'"
-                             f" of type '{source_model_type}', "
-                             f" error: {str(e)}")
+            raise ValueError(f"{self.name}._register_input_from({source_model_type}) failed") from e
 
     def _run(self):
         """This function is called prior to the run model to make sure
@@ -67,7 +66,7 @@ class ModelProtected:
         # now we can call this models run method
         self.run()
 
-    def _register_notifying_model(self, model_type: 'ModelType', model_instance: 'Model'):
+    def register_notifying_model(self, model_type: 'ModelType', model_instance: 'Model'):
         '''
         A model has notified <this_model> by a call to
             <other_model>.notify( <this_model> )
@@ -77,7 +76,7 @@ class ModelProtected:
         self._notifying_models[model_type] = model_instance
         self._register_input_from(model_type)
 
-    def _get_model_dependency_depth(self, loops: int = 0) -> int:
+    def get_model_dependency_depth(self, loops: int = 0) -> int:
         """
         Find the level of input models this model is depending on
         Example: Find the max level for the following models
@@ -101,52 +100,42 @@ class ModelProtected:
         total num of dependencies = 1+2+3+ ... + (n-1) = (n-1)n/2
         """
         depth = [0]
-        n = self._model_runner._numof_created_models
+        n = self._model_runner.numof_created_models
         i = n - 1
         max_loop = (n - 1) * n / 2
         for model_name, model_instance in self._input_models.items():
             loops += 1
             if loops > max_loop:
-                raise KeyError(
-                    f'(ModelType.{self.model_type.name}, {self.name}):'
-                    f'found circular dependency between models, '
-                    f'max {max_loop} '
-                    f'dependencies allowed for {n} models')
-            child_depth = model_instance._get_model_dependency_depth(loops) + 1
+                raise ValueError(
+                    f"Model '{self.name}' (ModelType.{self.model_type.name}):"
+                    f" circular dependency found between models"
+                    f" ({max_loop} loops, {n} models)")
+            child_depth = model_instance.get_model_dependency_depth(loops) + 1
             depth.append(child_depth)
         return max(depth)
 
-    def _add_param(self, name: str, val: any, mif: 'ModelInterface'):
+    def _add_param(self, name: str, val: any, mif: ModelInterface):
         """Add an interface parameter to the model"""
 
         if not isinstance(name, str):
-            raise ValueError(f"parameter '{self.name}' must be a str"
-                             f" when adding to '{self.name}.{mif.name}'")
+            raise AttributeError(f"The parameter name ({name}) must be a string"
+                                 f" for '{self.name}.{mif.name}.{name}'")
 
-        if '.' in name:
-            raise ValueError(f"'.' character not allowed"
-                             f" for parameter '{name}'"
-                             f" when adding to '{self.name}.{mif.name}'")
+        if not name.isidentifier():
+            raise AttributeError(f"The parameter name ({name}) is not a valid identifier"
+                                 f" for '{self.name}.{mif.name}.{name}'")
 
-        """add name:val to dict"""
-        if name in mif.params:
-            raise ValueError(f"failed to add parameter '{self.name}.{mif.name}.{name} = {val}'"
-                             f" error: parameter already exist")
-        else:
-            mif.params[name] = val
+        """ add as parameter, allow overwriting any existing value"""
+        mif.params[name] = val
 
-        """add object.name = val to a model interface"""
-        if name in dir(mif):
-            raise ValueError(f"failed to add attribute '{self.name}.{mif.name}.{name} = {val}'"
-                             f" error: attribute already exist")
-        else:
-            try:
-                setattr(mif, name, val)
-            except Exception as e:
-                raise ValueError(f"failed to add attribute '{self.name}.{mif.name}.{name} = {val}'"
-                                 f" error: {str(e)}")
+        """add as object attribute, allow overwriting any existing value"""
+        try:
+            setattr(mif, name, val)
+        except Exception as e:
+            raise KeyError(f"Failed to add parameter as attribute"
+                           f" for '{self.name}.{mif.name}.{name} = {val}'") from e
 
-    def _get_mif_params_full_path(self, mif: 'ModelInterface') -> Dict[str, any]:
+    def get_model_interface_params_full_path(self, mif: ModelInterface) -> Dict[str, any]:
         """Returns a dict with model interface parameters as.
         { '<model_type>.<mif.name>.<param_name>' : <param.value> }  of type (str:any)"""
         params = {}

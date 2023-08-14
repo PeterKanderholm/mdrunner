@@ -1,7 +1,6 @@
-import importlib
 from src.mdrunner import Runner
 from tests.models import ModelType
-
+import tests
 
 class Test_1:
 
@@ -9,9 +8,9 @@ class Test_1:
         ''' Register and run models '''
 
         # configure models to run
-        all_models = importlib.import_module('tests.models')
+        model_package = tests.models
         selected_models = ['S1']
-        runner = Runner(all_models, selected_models)
+        runner = Runner(model_package, selected_models)
 
         # feed models with external inputs
         values = {'p1': 2.0, 'p2': 3.0}

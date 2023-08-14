@@ -24,14 +24,26 @@ class Runner(RunnerProtected):
             a dict with {name : value} pairs of type {str : any}
         model_type :
             the user defined ModelType of the receiving model"""
-        model_instance = self._get_model_instance(model_type)
+        try:
+            model_instance = self.get_model_instance(model_type)
+        except Exception as e:
+            raise Exception(
+                f"failed to get add model '{model_type}')") from e
         for name, val in params.items():
-            model_instance.add_input(name, val)
+            try:
+                model_instance.add_input(name, val)
+            except Exception as e:
+                raise Exception(
+                    f"failed to add parameter '{name} =  {val}'"
+                    f" to '{model_type}')") from e
 
     def run_models(self):
         """Run all registered models in the correct execution order"""
         for model in self.model_run_order:
-            model._run()
+            try:
+                model._run()
+            except Exception as e:
+                raise Exception(f"failed to run model '{model.name}'") from e
 
     @property
     def input(self) -> Dict[str, any]:
@@ -39,7 +51,7 @@ class Runner(RunnerProtected):
         { 'model_type.input.param_name' : value }  of type (str:any)"""
         params = {}
         for name, model in self._created_models.items():
-            params.update(model._get_mif_params_full_path(model.input))
+            params.update(model.get_model_interface_params_full_path(model.input))
         return params
 
     @property
@@ -48,12 +60,12 @@ class Runner(RunnerProtected):
         { 'model_type.output.param_name' : value }  of type (str:any)"""
         params = {}
         for name, model in self._created_models.items():
-            params.update(model._get_mif_params_full_path(model.output))
+            params.update(model.get_model_interface_params_full_path(model.output))
         return params
 
     def models(self) -> Dict['ModelType', Model]:
         """Return a dict with the model type and instance
-        { 'Mdel_typem_name' : value }  of type (str:any)"""
+        { 'model_type_name' : model_instance }  of type (str:any)"""
         return self._created_models
 
     @property

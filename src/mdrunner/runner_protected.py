@@ -61,26 +61,31 @@ class RunnerProtected:
             model_instance = class_definition(self)
         except Exception as e:
             raise KeyError(
-                f"failed to instantiate model: {model_class_name}' not found in library {self._model_package}")
+                f"failed to instantiate model: {model_class_name}'"
+                f" not found in model library {self._model_package}") from e
         return model_instance
 
-    def _get_model_instance(self, model_type: 'ModelType') -> Model:
+    def get_model_instance(self, model_type: 'ModelType') -> Model:
         """return the model instance associated with the user defined ModelType"""
         try:
             return self._created_models[model_type]
-        except KeyError:
+        except KeyError as e:
             raise KeyError(
-                f'model instance for model type "{model_type}" does not exist')
+                f'model instance for model type "{model_type}" does not exist') from e
 
     def _register_model(self, model_instance: Model):
         """register the instantiated model"""
         # add instantiated model to model dict
         model_type = model_instance.model_type
-        if model_type in self._created_models:
-            current_model = model_instance.name
-            previous_model = self._created_models[model_instance.model_type].name
+        if not model_type:
             raise ValueError(
-                f"two models ({previous_model} and {current_model}) "
+                f"Missing model_type in model '{model_instance.name}' class definition")
+
+        if model_type in self._created_models:
+            current_model_name = model_instance.name
+            previous_model_name = self._created_models[model_instance.model_type].name
+            raise ValueError(
+                f"two model instances ({previous_model_name} and {current_model_name}) "
                 f"have the same model_type ({model_type})")
         else:
             self._created_models[model_type] = model_instance
@@ -91,7 +96,7 @@ class RunnerProtected:
                 raise ValueError(
                     f"failed to register model '{model_instance.name}'"
                     f" of type '{model_type}'"
-                    f" with error: {str(e)}")
+                    f" with error: {str(e)}") from e
         return
 
     def _init_models(self):
@@ -115,7 +120,7 @@ class RunnerProtected:
             ]
         """
         for model_name, model_instance in self._created_models.items():
-            depth = model_instance._get_model_dependency_depth()
+            depth = model_instance.get_model_dependency_depth()
             self._extend_model_run_order(depth)
             self._model_run_order[depth].append(model_instance)
 
@@ -129,6 +134,6 @@ class RunnerProtected:
                 self._model_run_order.append([])
 
     @property
-    def _numof_created_models(self) -> int:
+    def numof_created_models(self) -> int:
         """return the number of instantiated models"""
         return len(self._created_models)

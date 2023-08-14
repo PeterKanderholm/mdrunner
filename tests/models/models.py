@@ -18,7 +18,8 @@ class S1(Model):
         pass
 
     def run(self):
-        self.add_output(name='x', val=self.input.p1 * self.input.p2)
+        val = self.input.p1 * self.input.p2
+        self.add_output(name='x', val=val)
 
 
 class S2(Model):
@@ -31,6 +32,7 @@ class S2(Model):
     def run(self):
         pass
 
+
 class S3(Model):
     model_type = ModelType.S
 
@@ -39,8 +41,8 @@ class S3(Model):
         self.notify(ModelType.F)
 
     def run(self):
-        self.add_output(name='x', val= self.input.p2 + self.input.p3)
-        pass
+        self.add_output(name='x', val=self.input.p2 + self.input.p3)
+
 
 class A1(Model):
     model_type = ModelType.A

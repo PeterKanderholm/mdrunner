@@ -48,11 +48,12 @@ class ModelSelector:
                         selected_models[model_type] = model_class_name
                         break
                 except Exception as e:
-                    raise ValueError(f"failed to parse rule ({rule}) "
-                                     f"for model({model_class_name}) with error:\n"
-                                     f"{str(e)}")
+                    raise ValueError(f"failed to parse rule ({rule})"
+                                     f" for model({model_class_name})"
+                                     f" with error:"
+                                     f" {str(e)}") from e
 
-        if (as_dict):
+        if as_dict:
             return selected_models
         else:
             return list(selected_models.values())

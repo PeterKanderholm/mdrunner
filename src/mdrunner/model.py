@@ -31,38 +31,50 @@ class Model(ModelProtected):
     def depend_on(self, source_model_type: 'ModelType'):
         """Request input from a <source_model> that <this_model> needs access to
            <source_model> --> <this_model>"""
-        self._register_input_from(source_model_type)
+        try:
+            self._register_input_from(source_model_type)
+        except Exception as e:
+            raise AttributeError(f"{self.name}.depend_on({source_model_type}) failed") from e
 
     def notify(self, target_model_type: 'ModelType'):
         """<this_model> wants to notify a <target_model>
            <this_model> --> <target_model>
-        Tell the <target_model> that <this_model> has data that might be of interest"""
-
-        target_model_instance = self._model_runner._get_model_instance(target_model_type)
-        this_model_type = self.model_type
-        this_model_instance = self
-
-        # let the <target_model> know that <this_model> has data that might be of interest
-        target_model_instance._register_notifying_model(this_model_type, this_model_instance)
-
-        # store this notification
-        self._notified_models[target_model_type] = target_model_instance
+           Tell the <target_model> that <this_model> has data that might be of interest
+        """
+        try:
+            target_model_instance = self._model_runner.get_model_instance(target_model_type)
+            this_model_type = self.model_type
+            this_model_instance = self
+            # let the <target_model> know that <this_model> has data that might be of interest
+            target_model_instance.register_notifying_model(this_model_type, this_model_instance)
+            # store this notification, allow for notifying the same model multiple times
+            self._notified_models[target_model_type] = target_model_instance
+        except Exception as e:
+            raise AttributeError(f"{self.name}.notify({target_model_type}) failed") from e
 
     @property
     def input(self) -> 'ModelInterface':
         return self._input
 
-    def add_input(self, name: str = None, val: any = None):
+    def add_input(self, name: str, val: any):
         """Add an input parameter to the model        """
-        self._add_param(name, val, self.input)
+        try:
+            self._add_param(name, val, self.input)
+        except Exception as e:
+            raise ValueError(f"{self.name}.add_input() failed for"
+                            f" {self.name}.{self.input.name}.{name} = {val}") from e
 
     @property
     def output(self) -> 'ModelInterface':
         return self._output
 
-    def add_output(self, name: str = None, val: any = None):
+    def add_output(self, name: str, val: any):
         """Add an output parameter to the model        """
-        self._add_param(name, val, self.output)
+        try:
+            self._add_param(name, val, self.output)
+        except Exception as e:
+            raise ValueError(f"{self.name}.add_output() failed for"
+                            f" {self.name}.{self.output.name}.{name} = {val}") from e
 
     @property
     def type(self) -> 'ModelType':
@@ -93,7 +105,7 @@ class Model(ModelProtected):
         return models
 
     def notified_models(self) -> List['Model']:
-        """Return a list of other models that <this_model>
+        """Return a list of other models that <this_model> has notified
            with a call to <this_model>.notify( <other_model> )
         """
         models = []
